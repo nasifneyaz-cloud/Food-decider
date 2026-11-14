@@ -1,5 +1,5 @@
 /* Use It Up — service worker. Cache-first app shell so the site works offline after the first visit. */
-const VERSION = 'use-it-up-v1'
+const VERSION = 'use-it-up-v3'
 const CORE = [
   './',
   './index.html',

@@ -14,15 +14,26 @@ function hashStr(s: string) {
   return h
 }
 
+const TILES = [
+  'from-[#f9e3b4] to-[#f2b98b]',
+  'from-[#d9ecc8] to-[#a9d29a]',
+  'from-[#fbd9cf] to-[#f1a58f]',
+  'from-[#f6e8a8] to-[#e9c25e]',
+  'from-[#d8e6f0] to-[#a9c8de]',
+  'from-[#ecd9ef] to-[#d3a9d9]',
+]
+
 interface Props {
   recipe: Recipe
   sel: Set<string>
   index?: number
   starter?: boolean
+  perfect?: boolean // uses everything the person ticked
+  defaultOpen?: boolean // show the method straight away
 }
 
-export default function RecipeCard({ recipe: r, sel, index = 0, starter = false }: Props) {
-  const [open, setOpen] = useState(false)
+export default function RecipeCard({ recipe: r, sel, index = 0, starter = false, perfect = false, defaultOpen = false }: Props) {
+  const [open, setOpen] = useState(defaultOpen)
   const panelId = useId()
 
   const { used, missing } = useMemo(() => {
@@ -45,14 +56,24 @@ export default function RecipeCard({ recipe: r, sel, index = 0, starter = false 
       style={{ animationDelay: `${Math.min(index, 8) * 70}ms` }}
     >
       <div className="relative h-44 overflow-hidden bg-cream-2 sm:h-48">
-        <img
-          src={`./${r.img}.jpg`}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full object-cover transition duration-[900ms] ease-out group-hover:scale-110"
-          style={{ objectPosition: pos, transform: flip ? undefined : 'scaleX(-1)' }}
-        />
+        {r.img ? (
+          <img
+            src={`./${r.img}.jpg`}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition duration-[900ms] ease-out group-hover:scale-110"
+            style={{ objectPosition: pos, transform: flip ? undefined : 'scaleX(-1)' }}
+          />
+        ) : (
+          <div aria-hidden="true" className={`absolute inset-0 flex items-center justify-center gap-2 bg-gradient-to-br ${TILES[h % TILES.length]}`}>
+            {r.uses.slice(0, 3).map((id, k) => (
+              <span key={id} className={`transition duration-500 group-hover:scale-110 ${k === 0 ? 'text-7xl' : 'text-5xl opacity-90'}`}>
+                {BY_ID.get(id)?.emoji}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-forest-deep/80 via-forest-deep/10 to-transparent" />
 
         <span className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide shadow ${CAT_STYLE[r.cat]}`}>
@@ -60,11 +81,15 @@ export default function RecipeCard({ recipe: r, sel, index = 0, starter = false 
           {cat.label}
         </span>
 
-        {complete && (
+        {complete ? (
           <span className="absolute right-3 top-3 rounded-full bg-cream px-3 py-1 text-xs font-bold text-forest shadow">
             ✓ You have it all
           </span>
-        )}
+        ) : perfect && !starter ? (
+          <span className="absolute right-3 top-3 rounded-full bg-cream px-3 py-1 text-xs font-bold text-forest shadow">
+            ✓ Uses your picks
+          </span>
+        ) : null}
         {starter && (
           <span className="absolute right-3 top-3 rounded-full bg-cream px-3 py-1 text-xs font-bold text-forest shadow">
             Starter idea
@@ -159,7 +184,7 @@ export default function RecipeCard({ recipe: r, sel, index = 0, starter = false 
             onClick={() => setOpen((o) => !o)}
             className="flex w-full items-center justify-between rounded-2xl bg-cream px-4 py-3 text-left text-sm font-bold text-forest transition hover:bg-cream-2"
           >
-            <span>{open ? 'Hide method' : 'Show method'}</span>
+            <span><span aria-hidden="true">📖 </span>{open ? 'Hide method' : `How to cook it (${r.steps.length} steps)`}</span>
             <span aria-hidden="true" className={`grid h-6 w-6 place-items-center rounded-full bg-forest text-cream transition-transform duration-300 ${open ? 'rotate-180' : ''}`}>
               ▾
             </span>

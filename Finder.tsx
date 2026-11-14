@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { INGREDIENTS, GROUPS, POPULAR_INGREDIENTS, BY_ID, cap, type GroupId } from './ingredients'
 import { RECIPES, CATS, STARTER_IDS, type Cat, type Recipe } from './recipes'
 import type { Fridge } from './hooks'
@@ -7,7 +7,7 @@ import RecipeCard from './RecipeCard'
 type CatFilter = 'all' | Cat
 type GroupFilter = 'popular' | 'all' | GroupId
 
-const STEP = 6
+const STEP = 8
 
 // Which ingredients are used by which category of recipe (so the tabs can narrow the chips).
 const CAT_SETS: Record<Cat, Set<string>> = { snack: new Set(), meal: new Set(), drink: new Set() }
@@ -62,10 +62,13 @@ export default function Finder({ fridge }: { fridge: Fridge }) {
     return GROUPS.map((g) => ({ g, items: chips.filter((c) => c.group === g.id) })).filter((x) => x.items.length)
   }, [chips, group, q])
 
-  /* ---------- ranking: most of your items used, then fewest missing ---------- */
-  const scored = useMemo<Scored[]>(() => {
-    if (sel.size === 0) return []
-    const out: Scored[] = []
+  /* ---------- ranking ----------
+     1) recipes that use EVERYTHING you ticked, needing the fewest extras
+     2) then the closest partial matches
+     Inside each group the dish families are mixed so one kind of dish (say, pasta) never takes over. */
+  const { scored, perfect } = useMemo(() => {
+    if (sel.size === 0) return { scored: [] as Scored[], perfect: 0 }
+    const all: Scored[] = []
     for (const r of RECIPES) {
       if (cat !== 'all' && r.cat !== cat) continue
       let used = 0
@@ -73,16 +76,34 @@ export default function Finder({ fridge }: { fridge: Fridge }) {
       if (!used) continue
       const missing = r.uses.length - used
       if (near && missing > 2) continue
-      out.push({ r, used, missing })
+      all.push({ r, used, missing })
     }
-    out.sort(
+    all.sort(
       (a, b) =>
         b.used - a.used ||
         a.missing - b.missing ||
+        Number(!!b.r.plain) - Number(!!a.r.plain) ||
         Number(!!b.r.featured) - Number(!!a.r.featured) ||
         a.r.time - b.r.time,
     )
-    return out
+    // mix families inside runs that have the same score
+    const out: Scored[] = []
+    let i = 0
+    while (i < all.length) {
+      let j = i
+      while (j < all.length && all[j].used === all[i].used && all[j].missing === all[i].missing) j++
+      const buckets = new Map<string, Scored[]>()
+      for (const s of all.slice(i, j)) {
+        const k = s.r.fam
+        if (!buckets.has(k)) buckets.set(k, [])
+        buckets.get(k)!.push(s)
+      }
+      const lists = [...buckets.values()]
+      for (let n = 0; lists.some((l) => n < l.length); n++) for (const l of lists) if (n < l.length) out.push(l[n])
+      i = j
+    }
+    const perfect = out.filter((s) => s.used === sel.size).length
+    return { scored: out, perfect }
   }, [sel, cat, near])
 
   const starters = useMemo(() => {
@@ -103,7 +124,9 @@ export default function Finder({ fridge }: { fridge: Fridge }) {
     ? 'Nothing ticked yet. Showing four easy starter recipes.'
     : scored.length === 0
       ? `No ${cat === 'all' ? '' : CATS.find((c) => c.id === cat)!.label.toLowerCase() + ' '}recipes match your ${sel.size} ingredient${sel.size === 1 ? '' : 's'} yet. Try another category or tick one more thing.`
-      : `${Math.min(limit, scored.length)} of ${scored.length} recipe${scored.length === 1 ? '' : 's'} shown for ${sel.size} ingredient${sel.size === 1 ? '' : 's'}. Best match: ${scored[0].r.name}, uses ${scored[0].used} of your items.`
+      : perfect > 0
+        ? `${perfect} recipe${perfect === 1 ? '' : 's'} use${perfect === 1 ? 's' : ''} everything you ticked. Closest other ideas follow underneath.`
+        : `No recipe uses all ${sel.size} of your ingredients together, so here are the closest matches.`
 
   /* ---------- actions ---------- */
   const pickForMe = () => {
@@ -306,7 +329,7 @@ export default function Finder({ fridge }: { fridge: Fridge }) {
           </div>
           {!starterMode && scored.length > 0 && (
             <span className="rounded-full bg-forest px-4 py-1.5 text-sm font-bold text-cream">
-              {scored.length.toLocaleString()} match{scored.length === 1 ? '' : 'es'}
+              {(perfect || scored.length).toLocaleString()} {perfect ? 'exact ' : ''}match{(perfect || scored.length) === 1 ? '' : 'es'}
             </span>
           )}
         </div>
@@ -330,9 +353,28 @@ export default function Finder({ fridge }: { fridge: Fridge }) {
         )}
 
         <div className="grid gap-5 sm:grid-cols-2">
-          {shown.map(({ r }, i) => (
-            <RecipeCard key={r.id} recipe={r} sel={sel} index={i} starter={starterMode} />
-          ))}
+          {shown.map(({ r }, i) => {
+            const isPerfect = !starterMode && i < perfect
+            return (
+              <Fragment key={r.id}>
+                {!starterMode && i === 0 && perfect > 0 && (
+                  <div className="sm:col-span-2">
+                    <h4 className="text-lg font-bold text-forest-deep">
+                      <span aria-hidden="true">✅ </span>Uses {sel.size === 1 ? 'your ingredient' : `all ${sel.size} of your ingredients`} · {perfect}
+                    </h4>
+                    <p className="text-sm text-ink-soft">These recipes are built around what you ticked. Any extras they need are listed on each card.</p>
+                  </div>
+                )}
+                {!starterMode && i === perfect && perfect > 0 && (
+                  <div className="mt-4 sm:col-span-2">
+                    <h4 className="text-lg font-bold text-forest-deep"><span aria-hidden="true">👀 </span>Also worth a look</h4>
+                    <p className="text-sm text-ink-soft">These use some of your ingredients, but not all of them.</p>
+                  </div>
+                )}
+                <RecipeCard recipe={r} sel={sel} index={i} starter={starterMode} perfect={isPerfect} defaultOpen={isPerfect && i < 4} />
+              </Fragment>
+            )
+          })}
         </div>
 
         {!starterMode && scored.length > limit && (

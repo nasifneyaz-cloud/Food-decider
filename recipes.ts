@@ -1,4 +1,5 @@
 import { INGREDIENTS, BY_NAME, cap, type Ingredient } from './ingredients'
+import { makeSimple } from './simple'
 
 export type Cat = 'snack' | 'meal' | 'drink'
 
@@ -12,7 +13,9 @@ export interface Recipe {
   basics: string[]
   steps: string[]
   blurb: string
-  img: string
+  img: string // photo file name, or '' to draw an emoji tile instead
+  fam: string // dish family, used to mix the results so one kind of dish never dominates
+  plain?: boolean // a simple 2–3 ingredient classic
   featured?: boolean
 }
 
@@ -26,7 +29,7 @@ export const CATS: { id: Cat; label: string; emoji: string; blurb: string }[] = 
 /* The 15 hand-written core recipes — together they use all 26 basics */
 /* ------------------------------------------------------------------ */
 
-interface Core extends Omit<Recipe, 'uses' | 'id'> {
+interface Core extends Omit<Recipe, 'uses' | 'id' | 'fam'> {
   uses: string[] // ingredient names
 }
 
@@ -1564,6 +1567,10 @@ const TPLS: Tpl[] = [
 /* Generation                                                         */
 /* ------------------------------------------------------------------ */
 
+// Only show a photo where it really matches the dish; everything else gets an emoji tile.
+const PHOTO_OK = /^(pasta-(veg|protein|fish|cream|sauce|bake)|roast-(meat|fish)|omelette|frittata|scramble|baked-eggs|egg-muffins|fried-rice|salad-pulse|grain-bowl|fish-salad|toast-|herb-toast|yogurt|energy|fruit-salad|baked-fruit|oat-cookies|smoothie|green-smoothie|lassi|milkshake|cooler|infused|spiced-tea|iced-tea|lemonade|mocktail)/
+const photoFor = (key: string, img: string) => (PHOTO_OK.test(key) ? img : '')
+
 function generate(): Recipe[] {
   const out: Recipe[] = []
   const seen = new Set<string>()
@@ -1608,7 +1615,8 @@ function generate(): Recipe[] {
         basics: d.basics ?? [],
         steps: d.steps,
         blurb: d.blurb,
-        img: tpl.img,
+        img: photoFor(tpl.key, tpl.img),
+        fam: tpl.key.split('-')[0],
       })
       made++
     }
@@ -1633,6 +1641,8 @@ function generate(): Recipe[] {
 const core: Recipe[] = CORE.map((c) => ({
   ...c,
   id: '',
+  fam: 'core',
+  img: /soup|sandwich/i.test(c.name) ? '' : c.img,
   featured: true,
   uses: c.uses.map((u) => {
     const ing = BY_NAME.get(u)
@@ -1641,7 +1651,7 @@ const core: Recipe[] = CORE.map((c) => ({
   }),
 }))
 
-export const RECIPES: Recipe[] = [...core, ...generate()].map((r, i) => ({
+export const RECIPES: Recipe[] = [...core, ...generate(), ...makeSimple().map((s) => ({ ...s, id: '' }))].map((r, i) => ({
   ...r,
   id: 'r' + String(i + 1).padStart(4, '0'),
 }))

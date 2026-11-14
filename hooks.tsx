@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode, type ElementType } from 'r
 import { BY_ID } from './ingredients'
 
 /* ---------- tiny hash router (works on GitHub Pages & offline) ---------- */
-export const ROUTES = ['/', '/recipes', '/facts'] as const
+export const ROUTES = ['/', '/finder', '/recipes', '/facts'] as const
 export type Route = (typeof ROUTES)[number]
 
 const parse = (): Route => {

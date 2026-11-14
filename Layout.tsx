@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { go, type Route } from './hooks'
+import type { Route } from './hooks'
 import { RECIPES } from './recipes'
 import { INGREDIENTS } from './ingredients'
 import { SOURCE_SHORT, SOURCE_URL } from './content'
@@ -40,13 +40,7 @@ export function Header({ route, onFinder }: { route: Route; onFinder: () => void
         </a>
         <nav aria-label="Main" className="order-3 -mx-1 flex w-full items-center gap-1 overflow-x-auto px-1 pb-1 sm:order-none sm:w-auto sm:pb-0">
           {link('/', 'Home')}
-          <button
-            type="button"
-            onClick={onFinder}
-            className="whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold text-forest transition hover:bg-forest/10"
-          >
-            Fridge finder
-          </button>
+          {link('/finder', 'Fridge finder')}
           {link('/recipes', 'Recipe book')}
           {link('/facts', 'The facts')}
         </nav>
@@ -111,7 +105,7 @@ export function Footer() {
           <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-mustard">Explore</h2>
           <ul className="mt-3 space-y-2 text-sm">
             <li><a className="hover:underline" href="#/">Home</a></li>
-            <li><button type="button" className="hover:underline" onClick={() => go('/')}>Fridge finder</button></li>
+            <li><a className="hover:underline" href="#/finder">Fridge finder</a></li>
             <li><a className="hover:underline" href="#/recipes">Recipe book ({RECIPES.length.toLocaleString()})</a></li>
             <li><a className="hover:underline" href="#/facts">The facts &amp; sources</a></li>
           </ul>

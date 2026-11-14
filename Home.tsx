@@ -1,12 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Reveal, CountUp, prefersReduced, go } from './hooks'
-import type { Fridge } from './hooks'
-import Finder from './Finder'
 import { FIGURES, HABITS, SOURCE_SHORT } from './content'
 import { INGREDIENTS } from './ingredients'
 import { RECIPES } from './recipes'
 
-export default function Home({ fridge, onFinder }: { fridge: Fridge; onFinder: () => void }) {
+export default function Home({ onFinder }: { onFinder: () => void }) {
   const heroImg = useRef<HTMLDivElement>(null)
 
   // gentle parallax on the hero photo
@@ -161,7 +159,7 @@ export default function Home({ fridge, onFinder }: { fridge: Fridge; onFinder: (
                   onClick={onFinder}
                   className="mt-5 inline-flex items-center gap-2 rounded-full bg-mustard px-5 py-2.5 text-sm font-bold text-ink transition hover:-translate-y-0.5 hover:bg-mustard-2"
                 >
-                  Try the fridge finder <span aria-hidden="true">↓</span>
+                  Try the fridge finder <span aria-hidden="true">→</span>
                 </button>
               </figure>
             </div>
@@ -169,21 +167,25 @@ export default function Home({ fridge, onFinder }: { fridge: Fridge; onFinder: (
         </div>
       </section>
 
-      {/* ========================= 3. THE FINDER ========================= */}
-      <section id="finder" aria-labelledby="finder-title" className="relative bg-gradient-to-b from-cream-2/80 via-cream-2 to-cream-2/80 py-20 sm:py-24">
+      {/* ========================= 3. FINDER TEASER ========================= */}
+      <section id="finder" aria-labelledby="finder-title" className="relative bg-gradient-to-b from-cream-2/80 via-cream-2 to-cream-2/80 py-16 sm:py-20">
         <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-forest/20 to-transparent" />
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <Reveal className="mx-auto mb-12 max-w-3xl text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-tomato">The fridge finder</p>
-            <h2 id="finder-title" className="mt-3 text-4xl font-bold leading-[1.08] tracking-tight text-forest-deep sm:text-6xl">
-              Tick what you’ve <em className="swash">got</em>. We’ll do the thinking.
-            </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-lg text-ink-soft">
-              Choose from {INGREDIENTS.length} everyday ingredients. Recipes update the instant you tick, ranked by how much of <em>your</em> food they use and how little you’d need to buy.
-            </p>
-          </Reveal>
-          <Finder fridge={fridge} />
-        </div>
+        <Reveal className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-tomato">The fridge finder</p>
+          <h2 id="finder-title" className="mt-3 text-4xl font-bold leading-[1.08] tracking-tight text-forest-deep sm:text-5xl">
+            Tick what you’ve <em className="swash">got</em>. We’ll do the thinking.
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-ink-soft">
+            Pick from {INGREDIENTS.length} everyday ingredients, such as chicken and rice, and get recipes that use <em>everything</em> you picked, with the full method.
+          </p>
+          <button
+            type="button"
+            onClick={onFinder}
+            className="shine-btn mt-8 rounded-full bg-tomato px-8 py-4 text-lg font-bold text-white shadow-lift transition hover:-translate-y-0.5 hover:bg-tomato-2"
+          >
+            Open the fridge finder →
+          </button>
+        </Reveal>
       </section>
 
       {/* ======================== 4. STORAGE HABITS ======================== */}
